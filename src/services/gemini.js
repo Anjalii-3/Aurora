@@ -1,14 +1,24 @@
 // src/services/gemini.js
-// Your Part B: AI study boost logic
 
-// This works for both Vite (frontend) and Node (testing)
-const KEY = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) 
-            || process.env.VITE_GEMINI_API_KEY;
+// 1. Detect environment and get API Key safely
+const getApiKey = () => {
+    // Check if we are in a Vite environment (frontend)
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) {
+        return import.meta.env.VITE_GEMINI_API_KEY;
+    }
+    // Check if we are in a Node environment (testing)
+    if (typeof process !== 'undefined' && process.env && process.env.VITE_GEMINI_API_KEY) {
+        return process.env.VITE_GEMINI_API_KEY;
+    }
+    return null;
+};
+
+const KEY = getApiKey();
 
 export async function generateStudyBoost(mood, topic) {
   const systemPrompt = `
     You are "Chechi," a warm, encouraging, and slightly witty elder sister tutor from Kerala. 
-    Your goal is to help a student who is feeling ${mood} while studying ${topic}.
+    Your goal is to help a student who is feeling "${mood}" while studying "${topic}".
     
     You MUST respond in valid JSON format with these exact keys:
     {
@@ -21,34 +31,44 @@ export async function generateStudyBoost(mood, topic) {
   `;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY}`;
+    if (!KEY) {
+        throw new Error("API Key is missing. Check your .env file!");
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`;
 
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: systemPrompt }] }],
-        // This forces Gemini to return ONLY the JSON object
-        generationConfig: { response_mime_type: "application/json" }
+        generationConfig: { 
+            response_mime_type: "application/json",
+            temperature: 0.7 
+        }
       })
     });
 
     const data = await response.json();
     
-    if (!response.ok) throw new Error("API Limit hit");
+    if (!response.ok) {
+        console.error("API Error Response:", data);
+        throw new Error(data.error?.message || "API Limit hit");
+    }
 
     // Parse the string response into a real Javascript Object
     return JSON.parse(data.candidates[0].content.parts[0].text);
 
   } catch (error) {
-    console.error("Gemini Error:", error);
-    // Fallback Static Response (Task 5)
+    console.error("Gemini Error:", error.message);
+    
+    // Fallback Static Response (So the UI doesn't break)
     return {
-      support: "Ayyoo, Chechi's internet is a bit slow, but don't worry!",
-      keyPoints: ["Take a deep breath", "Drink some water", "Try again in a minute"],
-      example: "Even the best app needs a restart sometimes, just like us.",
-      memoryTrick: "Keep Calm and Call Chechi.",
-      chechiClosing: "I'm right here, try clicking the button again!"
+      support: "Ayyoo, Chechi's internet is a bit slow, but don't worry, Kanna!",
+      keyPoints: ["Take a deep breath", "Drink some water", "Review your notes for 5 minutes"],
+      example: "Even the best tea needs time to brew. Give Chechi a second!",
+      memoryTrick: "Keep Calm and Refresh the Page.",
+      chechiClosing: "I'm right here, molay! Try clicking the button again."
     };
   }
 }
