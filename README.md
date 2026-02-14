@@ -2,7 +2,7 @@
   <img src="./img.png" alt="Project Banner" width="100%">
 </p>
 
-# [Project Name] 🎯
+# StudyLift 🎯
 
 ## Basic Details
 
@@ -52,5 +52,6 @@ List the key features of your project:
 - Simple explanations of study topics with key points and examples  
 - Daily Boost (short affirmation + micro study tip)  
 - Shareable study card for saving or sharing motivation  
+
 
 
